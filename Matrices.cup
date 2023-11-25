@@ -1,0 +1,289 @@
+import java_cup.runtime.*;
+import java.util.*;
+
+action code {:
+
+    public void error(int id) {
+        switch (id) {
+            case 1 :
+                System.out.println(Matrices.ERROR_FILAS);
+                break;
+
+            case 2 :
+                System.out.println(Matrices.ERROR_INVERSA);
+                break;
+
+            case 3 :
+                System.out.println(Matrices.ERROR_ADJUNTA);
+                break;
+
+            case 4 :
+                System.out.println(Matrices.ERROR_PROD);
+                break;
+
+            case 5 :
+                System.out.println(Matrices.ERROR_SUMA);
+                break;
+
+            case 6 :
+                System.out.println(TablaSimbolos.ERROR_NOEXISTE);
+                break;
+
+            default:
+                System.out.println("Error desconocido");
+                break;
+        }
+    }
+
+    public class Matriz {
+
+        private double[][] matriz;
+
+        private int n;
+        private int m;
+
+        public Matriz(ArrayList<ArrayList<Double>> filas) {
+            /*if (filas.size() != 0) {
+                int m = filas.get(0).size();
+                double[][] matriz = new double[filas.size()][m];
+
+                for (int i = 0; i < filas.size(); i++) {
+                    if (filas.get(i).size() != m) {
+                        error(1);
+                        return;
+                    }
+                    for (int j = 0; j < m; j++) {
+                        matriz[i][j] = filas.get(i).get(j);
+                    }
+                }
+
+                this.matriz = matriz;
+                this.n = matriz.length;
+                this.m = matriz[0].length;
+            } else {
+               System.err.println("No se permiten matrices vacías");
+            }*/
+
+            double[][] res = null;
+
+            try {
+                res = Matrices.toArray(filas);
+                this.matriz = res;
+                this.n = res.length;
+                this.m = res[0].length;
+
+            } catch (Exception e) {
+                error(1);
+            }
+        }
+
+        public Matriz(double[][] matriz) {
+            this.matriz = new double[matriz.length][];
+            for (int i = 0; i < matriz.length; i++) {
+                this.matriz[i] = new double[matriz[i].length];
+                System.arraycopy(matriz[i], 0, this.matriz[i], 0, matriz[i].length);
+            }
+
+            this.n = matriz.length;
+            this.m = matriz[0].length;
+        }
+
+        public Matriz(double[][] matriz, int n, int m) {
+            this.matriz = new double[matriz.length][];
+            for (int i = 0; i < matriz.length; i++) {
+                this.matriz[i] = new double[matriz[i].length];
+                System.arraycopy(matriz[i], 0, this.matriz[i], 0, matriz[i].length);
+            }
+            this.n = n;
+            this.m = m;
+        }
+
+        public Matriz sum(Matriz other) {
+            Matriz res = null;
+
+            if (matriz.length != other.matriz.length || matriz[0].length != other.matriz[0].length) {
+                error(5);
+            } else {
+                //res = calcSum(other, matriz);
+                res = new Matriz(Matrices.suma(other.matriz, this.matriz));
+            }
+
+            return res;
+        }
+
+        private Matriz calcSum(Matriz other, double[][] matriz) {
+            double[][] result = new double[matriz.length][matriz[0].length];
+            for (int i = 0; i < matriz.length; i++) {
+                for (int j = 0; j < matriz[0].length; j++) {
+                    result[i][j] = matriz[i][j] + other.matriz[i][j];
+                }
+            }
+
+            return new Matriz(result);
+        }
+
+        public Matriz multiply(Matriz other) {
+            Matriz res = null;
+
+            if (matriz[0].length != other.matriz.length) {
+                error(4);
+            } else {
+                //res = new Matriz(calcMultiply(other, matriz));
+                res = new Matriz(Matrices.producto(this.matriz, other.matriz));
+            }
+
+
+            return res;
+        }
+
+        private double[][] calcMultiply(Matriz other, double[][] matriz) {
+            double[][] result = new double[matriz.length][other.matriz[0].length];
+            for (int i = 0; i < matriz.length; i++) {
+                for (int j = 0; j < other.matriz[0].length; j++) {
+                    for (int k = 0; k < matriz[0].length; k++) {
+                        result[i][j] += matriz[i][k] * other.matriz[k][j];
+                    }
+                }
+            }
+            return result;
+        }
+
+        public Matriz transpose() {
+            return calcTranspose(matriz);
+        }
+
+        private  Matriz calcTranspose(double[][] matriz) {
+            double[][] result = new double[matriz[0].length][matriz.length];
+            for (int i = 0; i < matriz.length; i++) {
+                for (int j = 0; j < matriz[0].length; j++) {
+                    result[j][i] = matriz[i][j];
+                }
+            }
+
+            return new Matriz(result);
+        }
+
+        public Matriz inverse() {
+            Matriz res = null;
+
+            if (matriz.length != matriz[0].length) {
+                error(2);
+            } else {
+                // res = calcInverse(matriz);
+                res = new Matriz(Matrices.inversa(this.matriz));
+            }
+
+            return res;
+        }
+
+        private  Matriz calcInverse(double[][] matriz) {
+
+            int n = matriz.length;
+            double[][] a = new double[n][2 * n];
+            double[][] b = new double[n][n];
+
+            // Copy the matrix to a and b
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    a[i][j] = matriz[i][j];
+                    b[i][i] = 1;
+                }
+            }
+
+            // Perform Gaussian elimination
+            for (int i = 0; i < n; i++) {
+                for (int k = i + 1; k < n; k++) {
+                    double factor = a[k][i] / a[i][i];
+                    for (int j = 0; j < 2 * n; j++) {
+                        a[k][j] -= factor * a[i][j];
+                    }
+                }
+            }
+
+            // Perform back substitution
+            for (int i = n - 1; i >= 0; i--) {
+                for (int j = i + 1; j < n; j++) {
+                    b[i][i] -= a[i][j] * b[j][i];
+                }
+                b[i][i] /= a[i][i];
+            }
+
+            return new Matriz(b);
+        }
+
+        public double[][] getMatriz() {
+            return this.matriz;
+        }
+
+        public int getM() {
+            return this.m;
+        }
+
+        public int getN() {
+            return this.n;
+        }
+    }
+
+:}
+
+
+terminal ALL, CLL, AP, CP, AC, CC, COMA, PYC
+            , ASIG, MAS, MENOS, POR, DIV
+            , INVERSA, TRANSPUESTA, ADJUNTA, PRINT;
+
+terminal String IDENT;
+terminal Double NUMERO;
+
+nonterminal lista_instrucciones, instruccion, declaracion, sentencia;
+
+nonterminal ArrayList<ArrayList<Double>>lista_fila;
+nonterminal ArrayList<Double> fila;
+nonterminal Matriz valor_matricial;
+nonterminal Matriz def_matriz;
+nonterminal Matriz func_matricial;
+
+precedence left PRINT;
+precedence left IDENT;
+precedence left INVERSA, TRANSPUESTA, ADJUNTA;
+precedence left COMA;
+precedence left MAS;
+precedence left POR;
+precedence left AP, CP;
+precedence left ALL, CLL;
+
+start with lista_instrucciones;
+
+// Fichero está compuesto por:
+
+lista_instrucciones ::= lista_instrucciones instruccion
+                        | instruccion ;
+
+instruccion ::= declaracion PYC
+                | sentencia PYC ;
+
+declaracion ::= IDENT:id ASIG valor_matricial:m      {:   if ( m != null) { TablaSimbolos.insertar(id, m.getMatriz()); } else { System.err.println("Añadiendo a la variable" + id + " un valor nulo"); TablaSimbolos.insertar(id, null); }   :};
+
+sentencia ::= PRINT AP valor_matricial:m CP          {:   if ( m != null && m.getMatriz() != null) { Matrices.print(m.getMatriz()); }   :};
+
+valor_matricial ::= valor_matricial:a MAS valor_matricial:b         {:      RESULT =  (a != null ? a.sum(b) : null);                :}
+                    | valor_matricial:a POR valor_matricial:b       {:      RESULT =  (a != null ? a.multiply(b) : null);           :}
+                    | AP valor_matricial:a CP                       {:      RESULT =  a;                     :}
+                    | def_matriz:m                                  {:      RESULT =  m;                     :}
+                    | func_matricial:m                              {:      RESULT =  m;                     :}
+                    | IDENT:id                                      {:      RESULT =  new Matriz(TablaSimbolos.buscar(id));         :};
+
+func_matricial ::= INVERSA AP valor_matricial:a CP                  {:      RESULT =  ( a != null ? a.inverse() : null );           :}
+                    | TRANSPUESTA AP valor_matricial:a CP           {:      RESULT =  ( a != null ? a.transpose() : null );         :}
+                    | ADJUNTA AP valor_matricial:a CP               {:      RESULT =  a;                     :};
+
+def_matriz ::= AC lista_fila:l CC                       {:      RESULT = new Matriz(l);                  :}
+                | ALL lista_fila:l CLL                  {:      RESULT = new Matriz(l);                  :};
+
+lista_fila ::= lista_fila:l PYC fila:fila               {:      l.add(fila); RESULT = l;                 :}
+                | lista_fila:l COMA ALL fila:f CLL      {:      l.add(f); RESULT = l;                    :}
+                | ALL fila:f CLL                        {:      RESULT = new ArrayList(List.of(f));      :}
+                | fila:fila                             {:      RESULT = new ArrayList(List.of(fila));   :};
+
+
+fila ::=  fila:l COMA NUMERO:n                          {:      l.add(n); RESULT = l;                    :}
+            | NUMERO:n                                  {:      RESULT = new ArrayList(List.of(n));      :};
